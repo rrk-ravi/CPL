@@ -1,0 +1,102 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+struct block {
+    int start;
+    int size;
+    struct block *next;
+};
+
+struct heap {
+    int heapsize;
+    struct block *freelist;
+};
+
+struct heap *initHeap(int heapsize) {
+    struct heap *manager = (struct heap *)malloc(sizeof(struct heap));
+    if (manager == NULL) {
+        perror("Failed to allocate memory for heap manager");
+        exit(EXIT_FAILURE);
+    }
+
+    manager->heapsize = heapsize;
+    manager->freelist = (struct block *)malloc(sizeof(struct block));
+    if (manager->freelist == NULL) {
+        perror("Failed to allocate memory for free list");
+        exit(EXIT_FAILURE);
+    }
+ 
+    manager->freelist->start = 0;
+    manager->freelist->size = heapsize;
+    manager->freelist->next = NULL;
+
+    return manager;
+}
+struct block *allocate(struct heap *manager,int size){
+    struct block *current = manager->freelist;
+    struct block *prev = NULL;
+    while(current!=NULL){
+        if(current->size >= size){
+            if(current->size > size){
+                //split the free block
+                struct block *newblock = (struct block*)malloc(sizeof(struct block));
+                if(newblock == NULL){
+                    perror("newblock not creted!");
+                    exit(EXIT_FAILURE);
+                }
+                newblock->start = current->start + size;
+                newblock->size = current->size - size;
+                newblock->next = current->next;
+
+                current->size = size;
+                current->next = newblock;
+            }
+            if(prev == NULL){
+                manager->freelist = current->next;
+            }
+            else{
+                prev->next = current->next;
+            }
+            return current;
+
+        }
+        prev = current;
+        current = current->next;
+    }
+    return NULL;
+}
+void deallocate(struct heap *manager, struct block *block) {
+    block->next = manager->freelist;
+    manager->freelist = block;
+}
+void printlist(struct heap *manager) {
+    printf("Free List: ");
+    struct block *current = manager->freelist;
+    while (current != NULL) {
+        printf("[%d, %d] -> ", current->start, current->size);
+        current = current->next;
+    }
+    printf("NULL\n");
+}
+
+
+int main(){
+    int heapsize = 1000;
+    struct heap *manager = initheap(heapsize);
+    printlist(manager);
+    struct block *block1 = allocate(manager,100);
+    struct block *block2 = allocate(manager,200);
+    deallocate(manager, block1);
+    printlist(manager);
+
+    struct block *block3 = allocate(manager, 50);
+    printlist(manager);
+
+    // Cleanup
+    free(manager->freelist);
+    free(manager);
+
+
+     
+    return 0;
+}
